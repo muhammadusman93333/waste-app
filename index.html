@@ -998,6 +998,9 @@
         <p>Chicken Waste Khata & Ledger</p>
       </div>
       <div class="header-actions">
+        <button class="reset-btn" onclick="forceCheckAppUpdate()" title="Update App to Latest Version">
+          <ion-icon name="sync-outline"></ion-icon>
+        </button>
         <button class="reset-btn" onclick="openBackupModal()" title="Google Drive Cloud Backup & Restore">
           <ion-icon name="cloud-upload-outline"></ion-icon>
         </button>
@@ -2249,6 +2252,21 @@
           <div>
             <button type="button" onclick="clearAllDataEmpty()" class="action-btn" style="width: 100%; padding: 10px; font-size: 12px; color: var(--we-owe); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px;">
               <ion-icon name="trash-outline"></ion-icon> Clear All (Empty App)
+            </button>
+          </div>
+        </div>
+
+        <!-- App Version & Update Controls -->
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
+                <ion-icon name="information-circle-outline" style="color: var(--primary); font-size: 16px;"></ion-icon> App Version: v1.5
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Statement dates & KG report update</div>
+            </div>
+            <button type="button" onclick="forceCheckAppUpdate()" class="action-btn primary" style="padding: 7px 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+              <ion-icon name="sync-outline"></ion-icon> Update App
             </button>
           </div>
         </div>
@@ -4267,6 +4285,31 @@
       });
     }
 
+    // --- FORCE APP UPDATE ENGINE ---
+    async function forceCheckAppUpdate() {
+      showToast('🔄 Checking for app updates...', 'sync-outline');
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let r of regs) {
+            await r.update().catch(() => {});
+          }
+        }
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (let name of cacheNames) {
+            await caches.delete(name);
+          }
+        }
+        showToast('✅ Latest update loaded!', 'checkmark-circle');
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 300);
+      } catch (e) {
+        window.location.reload(true);
+      }
+    }
+
     // --- INITIALIZE APPLICATION ---
     function initApp() {
       loadDB();
@@ -4283,8 +4326,34 @@
       // Register Service Worker for PWA installability & offline caching
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/waste/sw.js')
-          .then((reg) => console.log('PWA ServiceWorker registered:', reg.scope))
+          .then((reg) => {
+            console.log('PWA ServiceWorker registered:', reg.scope);
+            // Check for update on network immediately
+            reg.update().catch(() => {});
+
+            // Auto-reload when new version is ready
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('New update installed, reloading page...');
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+          })
           .catch((err) => console.log('PWA ServiceWorker registration failed:', err));
+
+        // When a new SW activates and claims clients, reload once to show fresh code
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       }
     }
 

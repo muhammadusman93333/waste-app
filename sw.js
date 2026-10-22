@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waste-app-cache-v14';
+const CACHE_NAME = 'waste-app-cache-v15';
 const ASSETS_TO_CACHE = [
   '/waste/',
   '/waste/index.html',
@@ -10,12 +10,13 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Activate new SW immediately without waiting
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -24,23 +25,53 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('[SW] Deleting stale cache:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  const isNavigation = event.request.mode === 'navigate' ||
+                       url.pathname === '/waste/' ||
+                       url.pathname === '/waste' ||
+                       url.pathname.endsWith('/index.html');
+
+  // NETWORK-FIRST for HTML / App shell navigation:
+  // If user is online, ALWAYS fetch the fresh HTML and update the cache so updates show immediately!
+  // If offline, seamlessly fall back to cached HTML.
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/waste/index.html').then((cached) => {
+            return cached || caches.match('/waste/');
+          });
+        })
+    );
+    return;
+  }
+
+  // CACHE-FIRST with background revalidate for static assets (icons, fonts, scripts)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached, but refresh in background
         fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -65,10 +96,7 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        // Fallback to cached index.html for navigation
-        if (event.request.mode === 'navigate') {
-          return caches.match('/waste/index.html');
-        }
+        return null;
       });
     })
   );
