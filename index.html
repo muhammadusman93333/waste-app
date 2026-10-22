@@ -641,6 +641,51 @@
       margin-top: 1px;
     }
 
+    /* Record Action Buttons (Edit / Delete) */
+    .txn-act-btn {
+      background: #F1F5F9;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      line-height: 1.2;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .txn-act-btn:hover {
+      background: #E2E8F0;
+      color: var(--text-main);
+    }
+    .txn-act-btn.edit {
+      color: #166534;
+      border-color: #BBF7D0;
+      background: #F0FDF4;
+    }
+    .txn-act-btn.edit:hover {
+      background: #DCFCE7;
+      border-color: #86EFAC;
+    }
+    .txn-act-btn.delete {
+      color: var(--we-owe);
+      border-color: #FECACA;
+      background: #FEF2F2;
+    }
+    .txn-act-btn.delete:hover {
+      background: #FEE2E2;
+      border-color: #F87171;
+    }
+    .txn-actions-bar {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
     /* Toast Notification */
     /* Toast Notification */
     #toast {
@@ -1035,9 +1080,15 @@
             <ion-icon name="scale-outline"></ion-icon> Material Purchase Entry
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Select Supplier</label>
-            <select id="waste-supplier-select" class="form-control" onchange="updateWasteImpact()"></select>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label">Select Supplier</label>
+              <select id="waste-supplier-select" class="form-control" onchange="updateWasteImpact()"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purchase Date</label>
+              <input type="date" id="waste-date" class="form-control">
+            </div>
           </div>
 
           <div class="form-group">
@@ -1097,6 +1148,16 @@
             <ion-icon name="save-outline"></ion-icon> Save Purchase Entry
           </button>
         </div>
+
+        <!-- Recent Waste Purchases (with Edit / Delete) -->
+        <div class="card" style="margin-top: 14px;">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span><ion-icon name="time-outline"></ion-icon> Recent Waste Purchases</span>
+          </div>
+          <div id="recent-waste-list">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
       </section>
 
       <!-- 3. PAYMENTS SCREEN -->
@@ -1106,9 +1167,15 @@
             <ion-icon name="cash-outline"></ion-icon> Direct Payment & Advance
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Select Supplier</label>
-            <select id="payment-supplier-select" class="form-control" onchange="updatePaymentImpact()"></select>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label">Select Supplier</label>
+              <select id="payment-supplier-select" class="form-control" onchange="updatePaymentImpact()"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Date</label>
+              <input type="date" id="payment-date" class="form-control">
+            </div>
           </div>
 
           <div class="form-group">
@@ -1163,6 +1230,16 @@
           <button class="btn-submit" onclick="submitPaymentEntry()">
             <ion-icon name="checkmark-done-outline"></ion-icon> Record Payment
           </button>
+        </div>
+
+        <!-- Recent Payments (with Edit / Delete) -->
+        <div class="card" style="margin-top: 14px;">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span><ion-icon name="time-outline"></ion-icon> Recent Payments</span>
+          </div>
+          <div id="recent-payments-list">
+            <!-- Rendered by JS -->
+          </div>
         </div>
       </section>
 
@@ -1232,9 +1309,23 @@
             </div>
           </div>
 
-          <!-- WhatsApp Share Button with Full Screenshot Capture -->
-          <button type="button" id="ledger-whatsapp-btn" class="btn-whatsapp" onclick="shareLedgerToWhatsAppScreenshot()" style="width: 100%; border: none; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <ion-icon name="logo-whatsapp" style="font-size: 18px;"></ion-icon> Send to WhatsApp (Full Screenshot)
+          <!-- View Mode Filter: All Khata vs Waste In Only (KG) -->
+          <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+            <button type="button" class="pill-btn active" id="btn-ledger-mode-all" onclick="setLedgerMode('ALL')" style="flex: 1; text-align: center; font-size: 11px; padding: 7px;">
+              📋 Full Statement
+            </button>
+            <button type="button" class="pill-btn" id="btn-ledger-mode-waste" onclick="setLedgerMode('WASTE_ONLY')" style="flex: 1; text-align: center; font-size: 11px; padding: 7px;">
+              ⚖️ Waste In Only (KG)
+            </button>
+          </div>
+
+          <!-- WhatsApp Share Buttons -->
+          <button type="button" id="ledger-whatsapp-btn" class="btn-whatsapp" onclick="shareLedgerToWhatsAppScreenshot(false)" style="width: 100%; border: none; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <ion-icon name="logo-whatsapp" style="font-size: 18px;"></ion-icon> Send to WhatsApp (Full Statement)
+          </button>
+
+          <button type="button" id="ledger-whatsapp-waste-btn" class="btn-whatsapp" onclick="shareLedgerToWhatsAppScreenshot(true)" style="width: 100%; margin-top: 8px; background: linear-gradient(135deg, #059669, #10B981); border: none; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <ion-icon name="scale-outline" style="font-size: 18px;"></ion-icon> Send Waste Report (KG Only) to WhatsApp
           </button>
 
           <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -1481,6 +1572,145 @@
               </button>
               <button type="submit" id="btn-confirm-clear-data" class="action-btn" style="flex: 2; padding: 12px; font-size: 13px; font-weight: 700; background: var(--we-owe); color: #fff; border: none; opacity: 0.5; cursor: not-allowed;" disabled>
                 <ion-icon name="trash-outline"></ion-icon> Erase All Data
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Supplier Popup Modal -->
+    <div id="modal-edit-supplier" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-edit-supplier')">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3><ion-icon name="create-outline" style="color: var(--primary); font-size: 20px;"></ion-icon> Edit Supplier</h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-edit-supplier')"><ion-icon name="close"></ion-icon></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-edit-supplier" onsubmit="submitEditSupplier(event)">
+            <input type="hidden" id="edit-supp-id">
+            <div class="form-group">
+              <label class="form-label">Business / Supplier Name *</label>
+              <input type="text" id="edit-supp-name" class="form-control" placeholder="e.g. Arslan Bhai" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone / WhatsApp Number</label>
+              <input type="tel" id="edit-supp-phone" class="form-control" placeholder="e.g. +92 300 1234567">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Yard / Market Address</label>
+              <input type="text" id="edit-supp-address" class="form-control" placeholder="e.g. Arslan Commission Shop">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes / Description (Optional)</label>
+              <input type="text" id="edit-supp-notes" class="form-control" placeholder="Optional notes">
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 18px;">
+              <button type="button" class="action-btn" onclick="closeModal('modal-edit-supplier')" style="flex: 1; padding: 12px; font-size: 13px;">
+                Cancel
+              </button>
+              <button type="submit" class="action-btn primary" style="flex: 2; padding: 12px; font-size: 13px; font-weight: 700;">
+                <ion-icon name="checkmark-circle-outline"></ion-icon> Update Supplier
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Transaction Popup Modal -->
+    <div id="modal-edit-transaction" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-edit-transaction')">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 id="edit-txn-modal-title"><ion-icon name="create-outline" style="color: var(--primary); font-size: 20px;"></ion-icon> Edit Record</h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-edit-transaction')"><ion-icon name="close"></ion-icon></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-edit-transaction" onsubmit="saveEditTransaction(event)">
+            <input type="hidden" id="edit-txn-id">
+            <input type="hidden" id="edit-txn-type">
+
+            <div class="form-group">
+              <label class="form-label">Supplier *</label>
+              <select id="edit-txn-supplier" class="form-control" required></select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label class="form-label">Transaction Date *</label>
+                <input type="date" id="edit-txn-date" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Slip / Ref #</label>
+                <input type="text" id="edit-txn-slip" class="form-control" placeholder="e.g. SLIP-102">
+              </div>
+            </div>
+
+            <!-- Fields for Waste Purchase -->
+            <div id="edit-txn-waste-fields">
+              <div class="form-group">
+                <label class="form-label">Material Category</label>
+                <input type="text" id="edit-txn-category" class="form-control" placeholder="e.g. Chicken Waste">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Weight (KG) *</label>
+                  <input type="number" id="edit-txn-weight" class="form-control" step="any" oninput="calculateEditWasteTotal()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Rate / KG (Rs.) *</label>
+                  <input type="number" id="edit-txn-rate" class="form-control" step="any" oninput="calculateEditWasteTotal()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Total Amount (Rs.)</label>
+                <input type="text" id="edit-txn-waste-amount" class="form-control" readonly style="font-weight: 800; background: #F8FAFC;">
+              </div>
+            </div>
+
+            <!-- Fields for Payment -->
+            <div id="edit-txn-payment-fields" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Payment Type</label>
+                <select id="edit-txn-pay-type" class="form-control">
+                  <option value="PAYMENT_GIVEN">Payment Given (Advance / Due Payment)</option>
+                  <option value="PAYMENT_RECEIVED">Payment Received (Refund)</option>
+                </select>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Amount (Rs.) *</label>
+                  <input type="number" id="edit-txn-pay-amount" class="form-control" step="any">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Payment Mode</label>
+                  <select id="edit-txn-mode" class="form-control">
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="EasyPaisa">EasyPaisa</option>
+                    <option value="JazzCash">JazzCash</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Vehicle / Truck # (Optional)</label>
+              <input type="text" id="edit-txn-vehicle" class="form-control" placeholder="e.g. LES-4589">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Remarks / Description</label>
+              <input type="text" id="edit-txn-remarks" class="form-control" placeholder="Optional notes">
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 18px;">
+              <button type="button" class="action-btn" onclick="closeModal('modal-edit-transaction')" style="flex: 1; padding: 12px; font-size: 13px;">
+                Cancel
+              </button>
+              <button type="submit" class="action-btn primary" style="flex: 2; padding: 12px; font-size: 13px; font-weight: 700;">
+                <ion-icon name="checkmark-circle-outline"></ion-icon> Save Changes
               </button>
             </div>
           </form>
@@ -2151,15 +2381,23 @@
       }
 
       if (params && params.supplierId) {
-        state.activeSupplierId = params.supplierId;
+        state.activeSupplierId = Number(params.supplierId);
       }
 
       // Refresh corresponding screen data
       if (screenId === 'dashboard') renderDashboard();
-      if (screenId === 'waste-entry') populateWasteSelect();
-      if (screenId === 'payments') populatePaymentSelect();
+      if (screenId === 'waste-entry') {
+        populateWasteSelect();
+        renderRecentWasteList();
+      }
+      if (screenId === 'payments') {
+        populatePaymentSelect();
+        renderRecentPaymentsList();
+      }
       if (screenId === 'suppliers') renderSuppliersList();
-      if (screenId === 'ledger') renderSupplierLedger(true);
+      if (screenId === 'ledger') {
+        renderSupplierLedger(true, params && params.supplierId ? Number(params.supplierId) : state.activeSupplierId);
+      }
       if (screenId === 'reports') {
         populateReportSupplierSelect(params && params.supplierId ? params.supplierId : null);
         renderReportsTable(false);
@@ -2210,15 +2448,25 @@
       container.innerHTML = recent.map(t => {
         const supp = state.suppliers.find(s => s.id === t.supplier_id) || { name: 'Supplier' };
         const isPurchase = t.type === 'WASTE_PURCHASE';
-        const title = isPurchase ? `${t.material_category} (${t.weight_kg} KG)` : `Payment: ${t.payment_method || 'Cash'}`;
+        const title = isPurchase ? `${t.material_category || 'Chicken Waste'} (${t.weight_kg} KG)` : `Payment: ${t.payment_method || 'Cash'}`;
         const color = isPurchase ? 'var(--purchase)' : 'var(--advance-given)';
         return `
-          <div class="ledger-row">
-            <div>
-              <div class="ledger-desc">${title}</div>
-              <div class="ledger-date">${supp.name} • ${new Date(t.date).toLocaleDateString()}</div>
+          <div class="ledger-row" data-txn-id="${t.id}">
+            <div style="flex: 1; min-width: 0;">
+              <div class="ledger-desc" style="font-weight: 700;">${escapeHTML(title)}</div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 8px;">
+                <div class="ledger-date">${escapeHTML(supp.name)} • ${new Date(t.date).toLocaleDateString()}</div>
+                <div class="txn-actions-bar">
+                  <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${t.id})" title="Edit Record">
+                    <ion-icon name="create-outline"></ion-icon> Edit
+                  </button>
+                  <button type="button" class="txn-act-btn delete" onclick="deleteTransaction(${t.id})" title="Delete Record">
+                    <ion-icon name="trash-outline"></ion-icon> Delete
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="ledger-amounts">
+            <div class="ledger-amounts" style="margin-left: 10px;">
               <div class="ledger-amt" style="color: ${color};">${formatPKR(t.amount)}</div>
               <div class="ledger-bal">${isPurchase ? 'Received' : 'Paid Out'}</div>
             </div>
@@ -2245,16 +2493,21 @@
 
     function populateWasteSelect() {
       const sel = document.getElementById('waste-supplier-select');
-      if (!sel) return;
-      if (state.suppliers.length === 0) {
-        sel.innerHTML = '<option value="">-- No Suppliers (Please Add First) --</option>';
-        updateWasteImpact();
-        return;
+      if (sel) {
+        if (state.suppliers.length === 0) {
+          sel.innerHTML = '<option value="">-- No Suppliers (Please Add First) --</option>';
+        } else {
+          sel.innerHTML = state.suppliers.map(s => `
+            <option value="${s.id}" ${state.activeSupplierId === s.id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
+          `).join('');
+        }
       }
-      sel.innerHTML = state.suppliers.map(s => `
-        <option value="${s.id}" ${state.activeSupplierId === s.id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
-      `).join('');
+      const wDate = document.getElementById('waste-date');
+      if (wDate && !wDate.value) {
+        wDate.value = new Date().toISOString().slice(0, 10);
+      }
       updateWasteImpact();
+      renderRecentWasteList();
     }
 
     function calculateWasteTotal() {
@@ -2266,17 +2519,17 @@
     }
 
     function updateWasteImpact() {
-      const sid = document.getElementById('waste-supplier-select').value;
+      const sid = document.getElementById('waste-supplier-select')?.value;
       if (!sid) return;
       const curBal = computeSupplierBalance(sid);
-      const w = parseFloat(document.getElementById('waste-weight').value) || 0;
-      const r = parseFloat(document.getElementById('waste-rate').value) || 0;
+      const w = parseFloat(document.getElementById('waste-weight')?.value) || 0;
+      const r = parseFloat(document.getElementById('waste-rate')?.value) || 0;
       const purchaseAmt = w * r;
-      const cashPaid = parseFloat(document.getElementById('waste-immediate-cash').value) || 0;
+      const cashPaid = parseFloat(document.getElementById('waste-immediate-cash')?.value) || 0;
       // Balance impact: purchase decreases balance (-purchaseAmt), cash paid increases balance (+cashPaid)
       const projected = curBal - purchaseAmt + cashPaid;
       const el = document.getElementById('waste-projected-bal');
-      el.innerHTML = getBalanceBadgeHTML(projected);
+      if (el) el.innerHTML = getBalanceBadgeHTML(projected);
     }
 
     function submitWasteEntry() {
@@ -2287,6 +2540,7 @@
       const slipNo = (document.getElementById('waste-slip-no')?.value || '').trim();
       const vehicleNo = (document.getElementById('waste-vehicle-no')?.value || '').trim();
       const remarks = (document.getElementById('waste-remarks')?.value || '').trim();
+      const dateVal = document.getElementById('waste-date')?.value || new Date().toISOString().slice(0, 10);
 
       if (!sid || w <= 0 || r <= 0) {
         alert('Please select a supplier and enter valid weight & rate.');
@@ -2294,7 +2548,8 @@
       }
 
       const tot = w * r;
-      const now = new Date().toISOString();
+      const entryTime = new Date().toTimeString().slice(0, 8);
+      const entryTimestamp = `${dateVal}T${entryTime}.000Z`;
 
       // 1. Add Waste Purchase
       state.transactions.push({
@@ -2308,7 +2563,7 @@
         slip_no: slipNo,
         vehicle_no: vehicleNo,
         remarks: remarks,
-        date: now
+        date: entryTimestamp
       });
 
       // 2. Add Immediate Cash Disbursement if any
@@ -2322,7 +2577,7 @@
           slip_no: slipNo,
           vehicle_no: vehicleNo,
           remarks: 'Spot Cash Payment on Purchase' + (remarks ? ` (${remarks})` : ''),
-          date: now
+          date: entryTimestamp
         });
       }
 
@@ -2335,7 +2590,56 @@
       if (document.getElementById('waste-slip-no')) document.getElementById('waste-slip-no').value = '';
       if (document.getElementById('waste-vehicle-no')) document.getElementById('waste-vehicle-no').value = '';
       document.getElementById('waste-remarks').value = '';
+      const wDate = document.getElementById('waste-date');
+      if (wDate) wDate.value = new Date().toISOString().slice(0, 10);
+
+      renderRecentWasteList();
       navTo('ledger', { supplierId: sid });
+    }
+
+    function renderRecentWasteList() {
+      const container = document.getElementById('recent-waste-list');
+      if (!container) return;
+      const recent = [...state.transactions].filter(t => t.type === 'WASTE_PURCHASE').reverse().slice(0, 6);
+      if (recent.length === 0) {
+        container.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">No waste purchases recorded yet.</p>';
+        return;
+      }
+      container.innerHTML = recent.map(t => {
+        const supp = state.suppliers.find(s => s.id === t.supplier_id) || { name: 'Supplier' };
+        const dateFormatted = t.date ? new Date(t.date).toLocaleDateString() : '';
+        const slipText = t.slip_no ? `Slip: ${escapeHTML(t.slip_no)}` : '';
+        const vehicleText = t.vehicle_no ? `Veh: ${escapeHTML(t.vehicle_no)}` : '';
+        const extra = [slipText, vehicleText].filter(Boolean).join(' • ');
+
+        return `
+          <div class="ledger-row" data-txn-id="${t.id}">
+            <div style="flex: 1; min-width: 0;">
+              <div class="ledger-desc" style="font-weight: 700;">
+                ${escapeHTML(supp.name)} <span style="font-weight: 500; font-size: 11px; color: var(--text-muted);">(${escapeHTML(t.material_category || 'Chicken Waste')})</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                ${t.weight_kg ? Number(t.weight_kg).toLocaleString() + ' KG' : ''} @ Rs. ${t.rate_per_kg || 0}
+                ${extra ? ` • <span style="color: #64748B;">${extra}</span>` : ''}
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 5px; gap: 8px;">
+                <div class="ledger-date">${dateFormatted}</div>
+                <div class="txn-actions-bar">
+                  <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${t.id})" title="Edit Purchase">
+                    <ion-icon name="create-outline"></ion-icon> Edit
+                  </button>
+                  <button type="button" class="txn-act-btn delete" onclick="deleteTransaction(${t.id})" title="Delete Purchase">
+                    <ion-icon name="trash-outline"></ion-icon> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="ledger-amounts" style="margin-left: 10px;">
+              <div class="ledger-amt" style="color: var(--purchase);">${formatPKR(t.amount)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     // --- PAYMENTS MODULE ---
@@ -2348,25 +2652,31 @@
 
     function populatePaymentSelect() {
       const sel = document.getElementById('payment-supplier-select');
-      if (!sel) return;
-      if (state.suppliers.length === 0) {
-        sel.innerHTML = '<option value="">-- No Suppliers (Please Add First) --</option>';
-        updatePaymentImpact();
-        return;
+      if (sel) {
+        if (state.suppliers.length === 0) {
+          sel.innerHTML = '<option value="">-- No Suppliers (Please Add First) --</option>';
+        } else {
+          sel.innerHTML = state.suppliers.map(s => `
+            <option value="${s.id}" ${state.activeSupplierId === s.id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
+          `).join('');
+        }
       }
-      sel.innerHTML = state.suppliers.map(s => `
-        <option value="${s.id}" ${state.activeSupplierId === s.id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
-      `).join('');
+      const pDate = document.getElementById('payment-date');
+      if (pDate && !pDate.value) {
+        pDate.value = new Date().toISOString().slice(0, 10);
+      }
       updatePaymentImpact();
+      renderRecentPaymentsList();
     }
 
     function updatePaymentImpact() {
-      const sid = document.getElementById('payment-supplier-select').value;
+      const sid = document.getElementById('payment-supplier-select')?.value;
       if (!sid) return;
       const curBal = computeSupplierBalance(sid);
-      const amt = parseFloat(document.getElementById('payment-amount').value) || 0;
+      const amt = parseFloat(document.getElementById('payment-amount')?.value) || 0;
       const projected = state.paymentType === 'PAYMENT_GIVEN' ? curBal + amt : curBal - amt;
-      document.getElementById('payment-projected-bal').innerHTML = getBalanceBadgeHTML(projected);
+      const el = document.getElementById('payment-projected-bal');
+      if (el) el.innerHTML = getBalanceBadgeHTML(projected);
     }
 
     function submitPaymentEntry() {
@@ -2376,11 +2686,15 @@
       const ref = (document.getElementById('payment-ref')?.value || '').trim();
       const vehicleNo = (document.getElementById('payment-vehicle-no')?.value || '').trim();
       const remarks = (document.getElementById('payment-remarks')?.value || '').trim();
+      const dateVal = document.getElementById('payment-date')?.value || new Date().toISOString().slice(0, 10);
 
       if (!sid || amt <= 0) {
         alert('Please select a supplier and specify a valid payment amount.');
         return;
       }
+
+      const entryTime = new Date().toTimeString().slice(0, 8);
+      const entryTimestamp = `${dateVal}T${entryTime}.000Z`;
 
       state.transactions.push({
         id: Date.now(),
@@ -2392,7 +2706,7 @@
         slip_no: ref,
         vehicle_no: vehicleNo,
         remarks: remarks,
-        date: new Date().toISOString()
+        date: entryTimestamp
       });
 
       saveDB();
@@ -2401,7 +2715,58 @@
       if (document.getElementById('payment-ref')) document.getElementById('payment-ref').value = '';
       if (document.getElementById('payment-vehicle-no')) document.getElementById('payment-vehicle-no').value = '';
       document.getElementById('payment-remarks').value = '';
+      const pDate = document.getElementById('payment-date');
+      if (pDate) pDate.value = new Date().toISOString().slice(0, 10);
+
+      renderRecentPaymentsList();
       navTo('ledger', { supplierId: sid });
+    }
+
+    function renderRecentPaymentsList() {
+      const container = document.getElementById('recent-payments-list');
+      if (!container) return;
+      const recent = [...state.transactions].filter(t => t.type === 'PAYMENT_GIVEN' || t.type === 'PAYMENT_RECEIVED').reverse().slice(0, 6);
+      if (recent.length === 0) {
+        container.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">No payment transactions recorded yet.</p>';
+        return;
+      }
+      container.innerHTML = recent.map(t => {
+        const supp = state.suppliers.find(s => s.id === t.supplier_id) || { name: 'Supplier' };
+        const dateFormatted = t.date ? new Date(t.date).toLocaleDateString() : '';
+        const isGiven = t.type === 'PAYMENT_GIVEN';
+        const typeLabel = isGiven ? 'Payment Given' : 'Payment Received';
+        const color = isGiven ? 'var(--advance-given)' : 'var(--purchase)';
+        const slipText = (t.slip_no || t.reference_no) ? `Ref/Slip: ${escapeHTML(t.slip_no || t.reference_no)}` : '';
+        const extra = [slipText, t.payment_method].filter(Boolean).join(' • ');
+
+        return `
+          <div class="ledger-row" data-txn-id="${t.id}">
+            <div style="flex: 1; min-width: 0;">
+              <div class="ledger-desc" style="font-weight: 700;">
+                ${escapeHTML(supp.name)} <span style="font-weight: 500; font-size: 11px; color: ${color};">(${typeLabel})</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                ${escapeHTML(extra || t.payment_method || 'Cash')}
+                ${t.remarks ? ` • <em>${escapeHTML(t.remarks)}</em>` : ''}
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 5px; gap: 8px;">
+                <div class="ledger-date">${dateFormatted}</div>
+                <div class="txn-actions-bar">
+                  <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${t.id})" title="Edit Payment">
+                    <ion-icon name="create-outline"></ion-icon> Edit
+                  </button>
+                  <button type="button" class="txn-act-btn delete" onclick="deleteTransaction(${t.id})" title="Delete Payment">
+                    <ion-icon name="trash-outline"></ion-icon> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="ledger-amounts" style="margin-left: 10px;">
+              <div class="ledger-amt" style="color: ${color};">${formatPKR(t.amount)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     // --- SUPPLIERS MODULE ---
@@ -2463,6 +2828,9 @@
             <div class="supplier-actions">
               <button class="icon-act-btn" onclick="navTo('ledger', { supplierId: ${s.id} })">
                 <ion-icon name="receipt-outline"></ion-icon> Ledger
+              </button>
+              <button class="icon-act-btn" style="color: var(--primary);" onclick="openEditSupplierModal(${s.id})">
+                <ion-icon name="create-outline"></ion-icon> Edit
               </button>
               <a href="tel:${s.phone}" class="icon-act-btn">
                 <ion-icon name="call-outline"></ion-icon> Call
@@ -2542,15 +2910,68 @@
       renderSuppliersList();
       populateWasteSelect();
       populatePaymentSelect();
-      populateLedgerSelect();
+      populateLedgerSelect(newId);
       renderDashboard();
 
       // If currently on the ledger screen, select this newly created supplier
       const ledgerSelect = document.getElementById('ledger-supplier-select');
       if (ledgerSelect) {
-        ledgerSelect.value = newId;
-        renderLedger();
+        ledgerSelect.value = String(newId);
+        renderSupplierLedger(false, newId);
       }
+    }
+
+    function openEditSupplierModal(suppId) {
+      const supp = state.suppliers.find(s => s.id === Number(suppId));
+      if (!supp) return;
+
+      document.getElementById('edit-supp-id').value = supp.id;
+      document.getElementById('edit-supp-name').value = supp.name || '';
+      document.getElementById('edit-supp-phone').value = supp.phone || '';
+      document.getElementById('edit-supp-address').value = supp.address || '';
+      document.getElementById('edit-supp-notes').value = supp.notes || '';
+
+      const modal = document.getElementById('modal-edit-supplier');
+      if (modal) {
+        modal.classList.add('open');
+        setTimeout(() => {
+          const input = document.getElementById('edit-supp-name');
+          if (input) input.focus();
+        }, 150);
+      }
+    }
+
+    function submitEditSupplier(event) {
+      if (event) event.preventDefault();
+      const id = Number(document.getElementById('edit-supp-id')?.value);
+      const name = (document.getElementById('edit-supp-name')?.value || '').trim();
+      const phone = (document.getElementById('edit-supp-phone')?.value || '').trim();
+      const address = (document.getElementById('edit-supp-address')?.value || '').trim();
+      const notes = (document.getElementById('edit-supp-notes')?.value || '').trim();
+
+      if (!name) {
+        showToast('Please enter supplier name');
+        return;
+      }
+
+      const supp = state.suppliers.find(s => s.id === id);
+      if (!supp) return;
+
+      supp.name = name;
+      supp.phone = phone;
+      supp.address = address;
+      supp.notes = notes;
+
+      saveDB();
+      closeModal('modal-edit-supplier');
+      showToast(`Supplier "${name}" updated successfully!`);
+
+      renderSuppliersList();
+      populateWasteSelect();
+      populatePaymentSelect();
+      populateLedgerSelect(id);
+      renderDashboard();
+      renderSupplierLedger(false, id);
     }
 
     function deleteSupplier(id) {
@@ -2560,6 +2981,10 @@
         saveDB();
         showToast('Supplier deleted.');
         renderSuppliersList();
+        renderDashboard();
+        populateWasteSelect();
+        populatePaymentSelect();
+        populateLedgerSelect();
       }
     }
 
@@ -2700,6 +3125,15 @@
     }
 
     // --- LEDGER MODULE ---
+    function setLedgerMode(mode) {
+      state.ledgerMode = mode;
+      const btnAll = document.getElementById('btn-ledger-mode-all');
+      const btnWaste = document.getElementById('btn-ledger-mode-waste');
+      if (btnAll) btnAll.classList.toggle('active', mode === 'ALL');
+      if (btnWaste) btnWaste.classList.toggle('active', mode === 'WASTE_ONLY');
+      renderSupplierLedger(false);
+    }
+
     function onLedgerSupplierChange() {
       const sel = document.getElementById('ledger-supplier-select');
       if (sel && sel.value) {
@@ -2715,17 +3149,21 @@
         sel.innerHTML = '<option value="">-- No Suppliers (Please add one) --</option>';
         return;
       }
-      let activeId = targetId !== null ? Number(targetId) : (sel.value ? Number(sel.value) : (state.activeSupplierId || state.suppliers[0]?.id));
+      let activeId = targetId !== null ? Number(targetId) : (state.activeSupplierId || (sel.value ? Number(sel.value) : state.suppliers[0]?.id));
+      state.activeSupplierId = activeId;
       sel.innerHTML = state.suppliers.map(s => `
         <option value="${s.id}" ${activeId === s.id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
       `).join('');
-      if (activeId) sel.value = String(activeId);
+      sel.value = String(activeId);
     }
 
-    function renderSupplierLedger(repopulate = false) {
+    function renderSupplierLedger(repopulate = false, targetId = null) {
+      if (targetId !== null) {
+        state.activeSupplierId = Number(targetId);
+      }
       const sel = document.getElementById('ledger-supplier-select');
-      if (repopulate || !sel || !sel.options || sel.options.length === 0) {
-        populateLedgerSelect();
+      if (repopulate || !sel || !sel.options || sel.options.length === 0 || targetId !== null) {
+        populateLedgerSelect(state.activeSupplierId);
       }
       if (state.suppliers.length === 0) {
         document.getElementById('ledger-table-rows').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);"><p style="margin-bottom:10px;">No suppliers or khata transactions found.</p><button type="button" onclick="openAddSupplierModal()" class="action-btn primary" style="margin:0 auto;display:inline-flex;">+ Add Supplier</button></div>';
@@ -2735,9 +3173,12 @@
         return;
       }
 
-      const sid = Number(document.getElementById('ledger-supplier-select')?.value) || (state.suppliers[0] ? state.suppliers[0].id : null);
+      const sid = state.activeSupplierId || Number(document.getElementById('ledger-supplier-select')?.value) || (state.suppliers[0] ? state.suppliers[0].id : null);
       if (!sid) return;
       state.activeSupplierId = sid;
+      if (sel && sel.value !== String(sid)) {
+        sel.value = String(sid);
+      }
 
       const supp = state.suppliers.find(s => s.id === sid);
       const dateFrom = document.getElementById('ledger-date-from')?.value || '';
@@ -2759,10 +3200,15 @@
         }
       }
 
+      const currentMode = state.ledgerMode || 'ALL';
+      const displayItems = currentMode === 'WASTE_ONLY'
+        ? repData.items.filter(item => item.type === 'WASTE_PURCHASE')
+        : repData.items;
+
       let rowsHTML = '';
 
-      // Opening balance row if prior dates exist
-      if (repData.hasOpeningBal) {
+      // Opening balance row if prior dates exist and in ALL mode
+      if (currentMode === 'ALL' && repData.hasOpeningBal) {
         const obBalText = repData.openingBal > 0 ? `+Rs. ${repData.openingBal.toLocaleString()} (Adv)` : repData.openingBal < 0 ? `-Rs. ${Math.abs(repData.openingBal).toLocaleString()} (Owe)` : `Rs. 0`;
         const obColor = repData.openingBal > 0 ? 'var(--advance-given)' : repData.openingBal < 0 ? 'var(--we-owe)' : 'var(--settled)';
         rowsHTML += `
@@ -2778,7 +3224,7 @@
         `;
       }
 
-      rowsHTML += repData.items.map(item => {
+      rowsHTML += displayItems.map(item => {
         const debit = item.payment;
         const credit = item.amount;
         const balText = item.balance > 0 ? `+Rs. ${item.balance.toLocaleString()} (Adv)` : item.balance < 0 ? `-Rs. ${Math.abs(item.balance).toLocaleString()} (Owe)` : `Rs. 0`;
@@ -2786,23 +3232,199 @@
         const amtText = debit > 0 ? `Debit: Rs. ${debit.toLocaleString()}` : `Credit: Rs. ${credit.toLocaleString()}`;
 
         return `
-          <div class="ledger-row">
+          <div class="ledger-row" data-txn-id="${item.id}">
             <div style="flex: 1; min-width: 0;">
               <div class="ledger-desc">${formatPaymentDetailHTML(item)}</div>
-              <div class="ledger-date" style="margin-top: 4px;">${new Date(item.rawDate).toLocaleDateString()}</div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 5px; gap: 8px;">
+                <div class="ledger-date">${new Date(item.rawDate).toLocaleDateString()}</div>
+                <div class="txn-actions-bar">
+                  <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${item.id})" title="Edit Transaction">
+                    <ion-icon name="create-outline"></ion-icon> Edit
+                  </button>
+                  <button type="button" class="txn-act-btn delete" onclick="deleteTransaction(${item.id})" title="Delete Transaction">
+                    <ion-icon name="trash-outline"></ion-icon> Delete
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="ledger-amounts">
+            <div class="ledger-amounts" style="margin-left: 10px;">
               <div class="ledger-amt" style="color: ${amtColor};">${amtText}</div>
-              <div class="ledger-bal">Bal: ${balText}</div>
+              ${currentMode === 'ALL' ? `<div class="ledger-bal">Bal: ${balText}</div>` : `<div class="ledger-bal" style="color: #059669; font-weight: 700;">${item.weightStr}</div>`}
             </div>
           </div>
         `;
       }).join('');
 
-      document.getElementById('ledger-table-rows').innerHTML = rowsHTML || '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">No transactions found in this period.</p>';
-      document.getElementById('ledger-sum-credit').innerText = formatPKR(repData.totAmount);
-      document.getElementById('ledger-sum-debit').innerText = formatPKR(repData.totPayment);
-      document.getElementById('ledger-closing-bal').innerHTML = getBalanceBadgeHTML(repData.closingBal);
+      const noMsg = currentMode === 'WASTE_ONLY'
+        ? 'No waste purchases recorded for this supplier in this period.'
+        : 'No transactions found in this period.';
+      document.getElementById('ledger-table-rows').innerHTML = rowsHTML || `<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:16px;">${noMsg}</p>`;
+
+      if (currentMode === 'WASTE_ONLY') {
+        let totWasteKg = 0;
+        let totWasteAmt = 0;
+        displayItems.forEach(i => {
+          totWasteKg += Number(i.weight || 0);
+          totWasteAmt += Number(i.amount || 0);
+        });
+        document.getElementById('ledger-sum-credit').innerText = formatPKR(totWasteAmt);
+        document.getElementById('ledger-sum-debit').innerText = `${totWasteKg.toLocaleString()} KG`;
+        document.getElementById('ledger-closing-bal').innerHTML = `<span class="badge settled" style="background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0;"><ion-icon name="scale-outline"></ion-icon> Trips: ${displayItems.length}</span>`;
+      } else {
+        document.getElementById('ledger-sum-credit').innerText = formatPKR(repData.totAmount);
+        document.getElementById('ledger-sum-debit').innerText = formatPKR(repData.totPayment);
+        document.getElementById('ledger-closing-bal').innerHTML = getBalanceBadgeHTML(repData.closingBal);
+      }
+    }
+
+    // --- TRANSACTION EDIT & DELETE ENGINE ---
+    function calculateEditWasteTotal() {
+      const w = parseFloat(document.getElementById('edit-txn-weight')?.value) || 0;
+      const r = parseFloat(document.getElementById('edit-txn-rate')?.value) || 0;
+      const tot = w * r;
+      const el = document.getElementById('edit-txn-waste-amount');
+      if (el) el.value = tot ? 'Rs. ' + tot.toLocaleString() : 'Rs. 0';
+    }
+
+    function openEditTransactionModal(txnId) {
+      const txn = state.transactions.find(t => t.id === Number(txnId));
+      if (!txn) return;
+
+      document.getElementById('edit-txn-id').value = txn.id;
+      document.getElementById('edit-txn-type').value = txn.type;
+
+      // Populate supplier select
+      const suppSel = document.getElementById('edit-txn-supplier');
+      if (suppSel) {
+        suppSel.innerHTML = state.suppliers.map(s => `
+          <option value="${s.id}" ${s.id === txn.supplier_id ? 'selected' : ''}>${escapeHTML(s.name)}</option>
+        `).join('');
+      }
+
+      // Date input (YYYY-MM-DD)
+      const dateInput = document.getElementById('edit-txn-date');
+      if (dateInput) {
+        dateInput.value = txn.date ? txn.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+      }
+
+      document.getElementById('edit-txn-slip').value = txn.slip_no || txn.reference_no || '';
+      document.getElementById('edit-txn-vehicle').value = txn.vehicle_no || '';
+      document.getElementById('edit-txn-remarks').value = txn.remarks || '';
+
+      const wasteGroup = document.getElementById('edit-txn-waste-fields');
+      const payGroup = document.getElementById('edit-txn-payment-fields');
+      const titleEl = document.getElementById('edit-txn-modal-title');
+
+      if (txn.type === 'WASTE_PURCHASE') {
+        if (titleEl) titleEl.innerHTML = '<ion-icon name="scale-outline" style="color: var(--purchase); font-size: 20px;"></ion-icon> Edit Waste Purchase';
+        if (wasteGroup) wasteGroup.style.display = 'block';
+        if (payGroup) payGroup.style.display = 'none';
+
+        document.getElementById('edit-txn-category').value = txn.material_category || 'Chicken Waste';
+        document.getElementById('edit-txn-weight').value = txn.weight_kg !== undefined ? txn.weight_kg : '';
+        document.getElementById('edit-txn-rate').value = txn.rate_per_kg !== undefined ? txn.rate_per_kg : '';
+        calculateEditWasteTotal();
+      } else {
+        if (titleEl) titleEl.innerHTML = '<ion-icon name="cash-outline" style="color: var(--advance-given); font-size: 20px;"></ion-icon> Edit Payment Record';
+        if (wasteGroup) wasteGroup.style.display = 'none';
+        if (payGroup) payGroup.style.display = 'block';
+
+        document.getElementById('edit-txn-pay-type').value = txn.type || 'PAYMENT_GIVEN';
+        document.getElementById('edit-txn-pay-amount').value = txn.amount !== undefined ? txn.amount : '';
+        document.getElementById('edit-txn-mode').value = txn.payment_method || 'Cash';
+      }
+
+      const modal = document.getElementById('modal-edit-transaction');
+      if (modal) modal.classList.add('open');
+    }
+
+    function saveEditTransaction(event) {
+      if (event) event.preventDefault();
+      const id = Number(document.getElementById('edit-txn-id').value);
+      const txn = state.transactions.find(t => t.id === id);
+      if (!txn) return;
+
+      const sid = Number(document.getElementById('edit-txn-supplier').value);
+      if (!sid) {
+        alert('Please select a valid supplier.');
+        return;
+      }
+
+      const dateVal = document.getElementById('edit-txn-date').value;
+      if (!dateVal) {
+        alert('Please select a valid date.');
+        return;
+      }
+
+      const slip = (document.getElementById('edit-txn-slip')?.value || '').trim();
+      const vehicle = (document.getElementById('edit-txn-vehicle')?.value || '').trim();
+      const remarks = (document.getElementById('edit-txn-remarks')?.value || '').trim();
+
+      txn.supplier_id = sid;
+      const oldTime = (txn.date && txn.date.includes('T')) ? txn.date.split('T')[1] : '12:00:00.000Z';
+      txn.date = `${dateVal}T${oldTime}`;
+      txn.slip_no = slip;
+      txn.reference_no = slip;
+      txn.vehicle_no = vehicle;
+      txn.remarks = remarks;
+
+      if (txn.type === 'WASTE_PURCHASE') {
+        const w = parseFloat(document.getElementById('edit-txn-weight').value) || 0;
+        const r = parseFloat(document.getElementById('edit-txn-rate').value) || 0;
+        if (w <= 0 || r <= 0) {
+          alert('Please enter valid weight and rate.');
+          return;
+        }
+        txn.weight_kg = w;
+        txn.rate_per_kg = r;
+        txn.amount = w * r;
+        txn.material_category = (document.getElementById('edit-txn-category')?.value || 'Chicken Waste').trim();
+      } else {
+        const amt = parseFloat(document.getElementById('edit-txn-pay-amount').value) || 0;
+        if (amt <= 0) {
+          alert('Please enter a valid payment amount.');
+          return;
+        }
+        txn.type = document.getElementById('edit-txn-pay-type').value;
+        txn.amount = amt;
+        txn.payment_method = document.getElementById('edit-txn-mode').value;
+      }
+
+      saveDB();
+      closeModal('modal-edit-transaction');
+      showToast('Record updated successfully!');
+
+      renderDashboard();
+      renderRecentWasteList();
+      renderRecentPaymentsList();
+      renderSupplierLedger(false, sid);
+      renderSuppliersList();
+    }
+
+    function deleteTransaction(txnId) {
+      const id = Number(txnId);
+      const txn = state.transactions.find(t => t.id === id);
+      if (!txn) return;
+
+      const supp = state.suppliers.find(s => s.id === txn.supplier_id);
+      const suppName = supp ? supp.name : 'Unknown';
+      const detail = txn.type === 'WASTE_PURCHASE'
+        ? `Waste: ${txn.weight_kg} KG @ Rs. ${txn.rate_per_kg} = Rs. ${Number(txn.amount).toLocaleString()}`
+        : `Payment (${txn.type === 'PAYMENT_GIVEN' ? 'Given' : 'Received'}): Rs. ${Number(txn.amount).toLocaleString()} (${txn.payment_method || 'Cash'})`;
+
+      if (!confirm(`Are you sure you want to delete this record?\n\nSupplier: ${suppName}\n${detail}\nDate: ${new Date(txn.date).toLocaleDateString()}\n\nBalances and ledger will be updated immediately.`)) {
+        return;
+      }
+
+      state.transactions = state.transactions.filter(t => t.id !== id);
+      saveDB();
+      showToast('Record deleted successfully.');
+
+      renderDashboard();
+      renderRecentWasteList();
+      renderRecentPaymentsList();
+      renderSupplierLedger(false);
+      renderSuppliersList();
     }
 
     function clearLedgerDateFilters() {
@@ -3095,13 +3717,130 @@
     }
 
     // --- FULL SCROLL SCREENSHOT & WHATSAPP SHARING ENGINE ---
-    function buildPrintableStatementHTML(supp, reportData, dateFrom, dateTo) {
+    function buildPrintableStatementHTML(supp, reportData, dateFrom, dateTo, onlyWaste = false) {
       const periodText = (dateFrom && dateTo) 
         ? `From ${formatDateCSV(dateFrom)} to ${formatDateCSV(dateTo)}`
         : (dateFrom ? `From ${formatDateCSV(dateFrom)} onward` : (dateTo ? `Up to ${formatDateCSV(dateTo)}` : 'All Historical Transactions'));
       
       const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+      if (onlyWaste) {
+        const wasteItems = reportData.items.filter(item => item.type === 'WASTE_PURCHASE');
+        let totKg = 0;
+        let totAmt = 0;
+        wasteItems.forEach(item => {
+          totKg += Number(item.weight || 0);
+          totAmt += Number(item.amount || 0);
+        });
+        const avgRate = totKg > 0 ? (totAmt / totKg).toFixed(2) : '0';
+
+        const rowsHTML = wasteItems.map((item, idx) => {
+          const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+          return `
+            <tr style="background: ${bg};">
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; font-weight: 700; vertical-align: top; width: 100px;">${item.dateStr}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; vertical-align: top;">${formatPaymentDetailHTML(item)}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; font-weight: 800; color: #0F172A; vertical-align: top; width: 130px; font-size: 13px;">${item.weightStr}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; vertical-align: top; width: 100px;">${item.rateStr}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; color: #2563EB; font-weight: 800; vertical-align: top; width: 140px; font-size: 13px;">${item.amountStr}</td>
+            </tr>
+          `;
+        }).join('');
+
+        return `
+          <div style="font-family: 'Inter', -apple-system, sans-serif; background: #FFFFFF; color: #0F172A; width: 880px; padding: 24px; box-sizing: border-box;">
+            <!-- Top Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #059669; padding-bottom: 16px; margin-bottom: 16px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 44px; height: 44px; border-radius: 12px; background: #059669; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 24px;">⚖️</div>
+                  <div>
+                    <h1 style="font-size: 21px; font-weight: 800; color: #065F46; margin: 0; letter-spacing: -0.3px;">MATERIAL PURCHASE & WEIGHT REPORT (KG ONLY)</h1>
+                    <p style="font-size: 12px; color: #64748B; margin: 3px 0 0 0;">Chicken Waste & Scrap Weighing Statement • Verified Purchase Record</p>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Generated Date</div>
+                <div style="font-size: 13px; font-weight: 700; color: #0F172A; margin-top: 2px;">${todayStr}</div>
+              </div>
+            </div>
+
+            <!-- Supplier Card & Filter Period -->
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 10px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Supplier Account</div>
+                <div style="font-size: 19px; font-weight: 800; color: #0F172A; margin-top: 2px;">${escapeHTML(supp.name)}</div>
+                <div style="font-size: 12px; color: #475569; margin-top: 4px;">
+                  <span>📞 ${escapeHTML(supp.phone || 'No phone')}</span>
+                  ${supp.address ? `<span style="margin-left: 14px;">📍 ${escapeHTML(supp.address)}</span>` : ''}
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Statement Period</div>
+                <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 2px;">${periodText}</div>
+                <div style="font-size: 11px; color: #059669; font-weight: 700; margin-top: 4px;">${wasteItems.length} Purchases / Slips</div>
+              </div>
+            </div>
+
+            <!-- KPI Metric Boxes (No Payment / No Balance) -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;">
+              <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 12px; text-align: center;">
+                <div style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Total Weight</div>
+                <div style="font-size: 18px; font-weight: 900; color: #15803D; margin-top: 4px;">${totKg.toLocaleString()} KG</div>
+              </div>
+              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; text-align: center;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Slips / Trips</div>
+                <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">${wasteItems.length}</div>
+              </div>
+              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; text-align: center;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Avg Rate / KG</div>
+                <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Rs. ${avgRate}</div>
+              </div>
+              <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 12px; text-align: center;">
+                <div style="font-size: 10px; font-weight: 700; color: #1D4ED8; text-transform: uppercase;">Total Purchase Value</div>
+                <div style="font-size: 18px; font-weight: 900; color: #1D4ED8; margin-top: 4px;">Rs. ${totAmt.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <!-- Chronological Statement Table (Waste Only) -->
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
+              <thead>
+                <tr style="background: #065F46; color: #FFFFFF;">
+                  <th style="padding: 10px 12px; text-align: left; border: 1px solid #065F46; font-weight: 700;">Date</th>
+                  <th style="padding: 10px 12px; text-align: left; border: 1px solid #065F46; font-weight: 700;">Slip # / Category / Vehicle Details</th>
+                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Weight (KG)</th>
+                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Rate (Rs.)</th>
+                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Total Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML || `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #64748B;">No waste purchase entries in this period.</td></tr>`}
+              </tbody>
+              <tfoot>
+                <tr style="background: #0F172A; color: #FFFFFF; font-weight: 800; font-size: 13px;">
+                  <td colspan="2" style="padding: 12px; border: 1px solid #0F172A;">NET PURCHASE TOTALS</td>
+                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A; color: #86EFAC;">${totKg.toLocaleString()} KG</td>
+                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A;">-</td>
+                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A; color: #93C5FD;">Rs. ${totAmt.toLocaleString()}</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <!-- Statement Footer -->
+            <div style="border-top: 1px dashed #CBD5E1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748B;">
+              <div>
+                <span>Official Waste Weighing & Purchase Report • Waste Management System</span>
+              </div>
+              <div>
+                <span>Total Verified Weight: <strong>${totKg.toLocaleString()} KG</strong></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Standard Full Khata Statement (Purchases + Payments + Balances)
       const balColor = reportData.closingBal < 0 ? '#DC2626' : reportData.closingBal > 0 ? '#16A34A' : '#475569';
       const balStatus = reportData.closingBal < 0 ? `We Owe Rs. ${Math.abs(reportData.closingBal).toLocaleString()}` : reportData.closingBal > 0 ? `Advance Given Rs. ${reportData.closingBal.toLocaleString()}` : `Fully Settled (Rs. 0)`;
 
@@ -3234,13 +3973,13 @@
       `;
     }
 
-    async function captureAndShareReportScreenshot(action = 'share') {
+    async function captureAndShareReportScreenshot(action = 'share', onlyWaste = false) {
       if (typeof html2canvas === 'undefined') {
         alert('Screenshot engine is loading, please try again in a moment.');
         return;
       }
 
-      showToast('📸 Preparing full scroll statement screenshot...');
+      showToast(onlyWaste ? '⚖️ Generating Waste Report (KG) screenshot...' : '📸 Preparing full statement screenshot...');
 
       // Identify active supplier
       let sid = null;
@@ -3278,6 +4017,14 @@
 
       const repData = getSupplierReportData(supp.id, dateFrom, dateTo);
 
+      if (onlyWaste) {
+        const wasteCheck = repData.items.filter(item => item.type === 'WASTE_PURCHASE');
+        if (wasteCheck.length === 0) {
+          alert('No waste purchase entries found for this supplier in the selected period.');
+          return;
+        }
+      }
+
       // Create an off-screen container rendered at 100% full height and width without scrollbars
       const tempDiv = document.createElement('div');
       tempDiv.id = 'temp-report-capture';
@@ -3295,7 +4042,7 @@
         overflow: visible !important;
       `;
 
-      tempDiv.innerHTML = buildPrintableStatementHTML(supp, repData, dateFrom, dateTo);
+      tempDiv.innerHTML = buildPrintableStatementHTML(supp, repData, dateFrom, dateTo, onlyWaste);
       document.body.appendChild(tempDiv);
 
       // Let DOM render
@@ -3319,7 +4066,7 @@
         const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.95));
         const cleanSuppName = (supp.name || 'Report').replace(/[^a-zA-Z0-9_-]/g, '_');
         const dateStr = new Date().toISOString().slice(0, 10);
-        const fileName = `Khata_${cleanSuppName}_${dateStr}.png`;
+        const fileName = onlyWaste ? `Waste_Report_${cleanSuppName}_${dateStr}.png` : `Khata_${cleanSuppName}_${dateStr}.png`;
         const imageFile = new File([blob], fileName, { type: 'image/png' });
 
         if (action === 'download') {
@@ -3329,19 +4076,34 @@
         }
 
         // WhatsApp Share Action
-        const balNum = repData.closingBal;
-        const balText = balNum > 0 ? `Advance Given Rs. ${balNum.toLocaleString()}` : balNum < 0 ? `We Owe Rs. ${Math.abs(balNum).toLocaleString()}` : `Fully Settled (Rs. 0)`;
         const cleanPhone = (supp.phone || '').replace(/[^0-9]/g, '');
         const waPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.substring(1) : cleanPhone;
+        const periodText = (dateFrom && dateTo) 
+          ? `From ${formatDateCSV(dateFrom)} to ${formatDateCSV(dateTo)}`
+          : (dateFrom ? `From ${formatDateCSV(dateFrom)} onward` : (dateTo ? `Up to ${formatDateCSV(dateTo)}` : 'All Transactions'));
 
-        const messageText = `📜 *KHATA STATEMENT*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${new Date().toLocaleDateString('en-GB')}\n💰 *Closing Balance: ${balText}*\n\n(Full statement screenshot attached)`;
+        let messageText = '';
+        if (onlyWaste) {
+          const wasteItems = repData.items.filter(item => item.type === 'WASTE_PURCHASE');
+          let totKg = 0;
+          let totAmt = 0;
+          wasteItems.forEach(i => {
+            totKg += Number(i.weight || 0);
+            totAmt += Number(i.amount || 0);
+          });
+          messageText = `⚖️ *MATERIAL PURCHASE & WEIGHT REPORT (KG ONLY)*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${new Date().toLocaleDateString('en-GB')}\n📦 *Total Weight: ${totKg.toLocaleString()} KG*\n💰 *Total Purchase Value: Rs. ${totAmt.toLocaleString()}*\n📝 Trips / Slips: ${wasteItems.length}\n\n(Full report screenshot attached)`;
+        } else {
+          const balNum = repData.closingBal;
+          const balText = balNum > 0 ? `Advance Given Rs. ${balNum.toLocaleString()}` : balNum < 0 ? `We Owe Rs. ${Math.abs(balNum).toLocaleString()}` : `Fully Settled (Rs. 0)`;
+          messageText = `📜 *KHATA STATEMENT*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${new Date().toLocaleDateString('en-GB')}\n💰 *Closing Balance: ${balText}*\n\n(Full statement screenshot attached)`;
+        }
 
         // Try Web Share API (native mobile WhatsApp share on iOS / Android)
         if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
           try {
             await navigator.share({
               files: [imageFile],
-              title: `Khata Statement - ${supp.name}`,
+              title: onlyWaste ? `Waste Report (KG) - ${supp.name}` : `Khata Statement - ${supp.name}`,
               text: messageText
             });
             showToast('Shared to WhatsApp successfully!');
@@ -3365,15 +4127,15 @@
     }
 
     function captureAndDownloadReportScreenshot() {
-      captureAndShareReportScreenshot('download');
+      captureAndShareReportScreenshot('download', state.ledgerMode === 'WASTE_ONLY');
     }
 
-    function shareLedgerToWhatsAppScreenshot() {
-      captureAndShareReportScreenshot('share');
+    function shareLedgerToWhatsAppScreenshot(onlyWaste = false) {
+      captureAndShareReportScreenshot('share', onlyWaste);
     }
 
     function shareReportToWhatsAppScreenshot() {
-      captureAndShareReportScreenshot('share');
+      captureAndShareReportScreenshot('share', false);
     }
 
     function toggleRawCSV() {
@@ -3511,6 +4273,12 @@
       renderCategoryPills();
       renderDashboard();
       initBackNavigation();
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const wDate = document.getElementById('waste-date');
+      if (wDate) wDate.value = todayStr;
+      const pDate = document.getElementById('payment-date');
+      if (pDate) pDate.value = todayStr;
 
       // Register Service Worker for PWA installability & offline caching
       if ('serviceWorker' in navigator) {
