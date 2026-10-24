@@ -4339,7 +4339,7 @@
       renderDashboard();
       initBackNavigation();
 
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = getLocalTodayISO();
       const wDate = document.getElementById('waste-date');
       if (wDate) wDate.value = todayStr;
       const pDate = document.getElementById('payment-date');
