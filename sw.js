@@ -1,12 +1,12 @@
-const CACHE_NAME = 'waste-app-cache-v15';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'waste-app-cache-v16';
+const CORE_ASSETS = [
   '/waste/',
   '/waste/index.html',
+  '/waste/?installed=1',
   '/waste/manifest.json',
   '/waste/js/html2canvas.min.js',
   '/waste/icons/icon-192.png',
-  '/waste/icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+  '/waste/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -14,7 +14,14 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
+      // Cache assets individually with Promise.allSettled so one missing item does not break offline storage
+      return Promise.allSettled(
+        CORE_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[SW] Pre-caching asset failed, skipping:', url, err);
+          })
+        )
+      );
     })
   );
 });
@@ -44,9 +51,9 @@ self.addEventListener('fetch', (event) => {
                        url.pathname === '/waste' ||
                        url.pathname.endsWith('/index.html');
 
-  // NETWORK-FIRST for HTML / App shell navigation:
-  // If user is online, ALWAYS fetch the fresh HTML and update the cache so updates show immediately!
-  // If offline, seamlessly fall back to cached HTML.
+  // NETWORK-FIRST for HTML / App shell navigation with bulletproof offline fallback:
+  // If user is online, ALWAYS fetch the fresh HTML and update the cache so updates show immediately.
+  // If offline, seamlessly fall back to cached HTML ignoring query parameters (?installed=1).
   if (isNavigation) {
     event.respondWith(
       fetch(event.request)
@@ -54,23 +61,39 @@ self.addEventListener('fetch', (event) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
+              // Cache across all common navigation entry points
               cache.put(event.request, responseClone);
+              cache.put('/waste/', responseClone.clone());
+              cache.put('/waste/index.html', responseClone.clone());
+              cache.put('/waste/?installed=1', responseClone.clone());
             });
           }
           return networkResponse;
         })
-        .catch(() => {
-          return caches.match('/waste/index.html').then((cached) => {
-            return cached || caches.match('/waste/');
-          });
+        .catch(async () => {
+          // Offline fallback: try matching with ignoreSearch: true
+          const cached = await caches.match(event.request, { ignoreSearch: true }) ||
+                         await caches.match('/waste/index.html', { ignoreSearch: true }) ||
+                         await caches.match('/waste/', { ignoreSearch: true }) ||
+                         await caches.match('/waste/?installed=1');
+          if (cached) return cached;
+
+          // Search any cache as fallback
+          const matchAny = await caches.match('/waste/index.html');
+          if (matchAny) return matchAny;
+
+          return new Response(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Offline</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h2>App is Offline</h2><p>Please open the app once while connected to the internet to initialize offline storage.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
         })
     );
     return;
   }
 
-  // CACHE-FIRST with background revalidate for static assets (icons, fonts, scripts)
+  // CACHE-FIRST with background revalidate for static assets (icons, scripts)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
         fetch(event.request)
           .then((networkResponse) => {
@@ -85,7 +108,7 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
 

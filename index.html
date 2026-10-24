@@ -1739,6 +1739,37 @@
       activeSupplierId: null
     };
 
+    // --- DATE & TIME LOCALIZATION HELPERS (PAKISTAN TIMEZONE & SYSTEM 12h/24h SYNC) ---
+    function getLocalTodayISO() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatDisplayDate(dateStr) {
+      if (!dateStr) return '';
+      const clean = String(dateStr).replace('Z', '');
+      const parts = clean.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dt = new Date(y, m, d);
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+      return clean.split('T')[0];
+    }
+
+    function getSystemFormattedDateTime(d = new Date()) {
+      const datePart = d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+      const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      return `${datePart}, ${timePart}`;
+    }
+
     function isRunningStandalone() {
       return window.matchMedia('(display-mode: standalone)').matches ||
              window.navigator.standalone === true ||
@@ -2261,9 +2292,9 @@
           <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
             <div>
               <div style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
-                <ion-icon name="information-circle-outline" style="color: var(--primary); font-size: 16px;"></ion-icon> App Version: v1.5
+                <ion-icon name="information-circle-outline" style="color: var(--primary); font-size: 16px;"></ion-icon> App Version: v1.6
               </div>
-              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Statement dates & KG report update</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Offline PWA, PK Time & 12h/24h Sync</div>
             </div>
             <button type="button" onclick="forceCheckAppUpdate()" class="action-btn primary" style="padding: 7px 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
               <ion-icon name="sync-outline"></ion-icon> Update App
@@ -2296,7 +2327,7 @@
         `;
       } else {
         listContainer.innerHTML = backups.map((b, idx) => {
-          const dateStr = b.createdTime ? new Date(b.createdTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Saved Backup';
+          const dateStr = b.createdTime ? getSystemFormattedDateTime(new Date(b.createdTime)) : 'Saved Backup';
           const isLatest = (idx === 0);
           return `
             <div class="backup-item-row" style="${isLatest ? 'border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.05);' : ''}">
@@ -2437,7 +2468,7 @@
         else if (bal > 0) totalAdvance += bal;
       });
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalTodayISO();
       let todayKg = 0;
       let todayPurchaseVal = 0;
 
@@ -2473,7 +2504,7 @@
             <div style="flex: 1; min-width: 0;">
               <div class="ledger-desc" style="font-weight: 700;">${escapeHTML(title)}</div>
               <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 8px;">
-                <div class="ledger-date">${escapeHTML(supp.name)} • ${new Date(t.date).toLocaleDateString()}</div>
+                <div class="ledger-date">${escapeHTML(supp.name)} • ${formatDisplayDate(t.date)}</div>
                 <div class="txn-actions-bar">
                   <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${t.id})" title="Edit Record">
                     <ion-icon name="create-outline"></ion-icon> Edit
@@ -2522,7 +2553,7 @@
       }
       const wDate = document.getElementById('waste-date');
       if (wDate && !wDate.value) {
-        wDate.value = new Date().toISOString().slice(0, 10);
+        wDate.value = getLocalTodayISO();
       }
       updateWasteImpact();
       renderRecentWasteList();
@@ -2558,7 +2589,7 @@
       const slipNo = (document.getElementById('waste-slip-no')?.value || '').trim();
       const vehicleNo = (document.getElementById('waste-vehicle-no')?.value || '').trim();
       const remarks = (document.getElementById('waste-remarks')?.value || '').trim();
-      const dateVal = document.getElementById('waste-date')?.value || new Date().toISOString().slice(0, 10);
+      const dateVal = document.getElementById('waste-date')?.value || getLocalTodayISO();
 
       if (!sid || w <= 0 || r <= 0) {
         alert('Please select a supplier and enter valid weight & rate.');
@@ -2567,7 +2598,7 @@
 
       const tot = w * r;
       const entryTime = new Date().toTimeString().slice(0, 8);
-      const entryTimestamp = `${dateVal}T${entryTime}.000Z`;
+      const entryTimestamp = `${dateVal}T${entryTime}`;
 
       // 1. Add Waste Purchase
       state.transactions.push({
@@ -2625,7 +2656,7 @@
       }
       container.innerHTML = recent.map(t => {
         const supp = state.suppliers.find(s => s.id === t.supplier_id) || { name: 'Supplier' };
-        const dateFormatted = t.date ? new Date(t.date).toLocaleDateString() : '';
+        const dateFormatted = t.date ? formatDisplayDate(t.date) : '';
         const slipText = t.slip_no ? `Slip: ${escapeHTML(t.slip_no)}` : '';
         const vehicleText = t.vehicle_no ? `Veh: ${escapeHTML(t.vehicle_no)}` : '';
         const extra = [slipText, vehicleText].filter(Boolean).join(' • ');
@@ -2681,7 +2712,7 @@
       }
       const pDate = document.getElementById('payment-date');
       if (pDate && !pDate.value) {
-        pDate.value = new Date().toISOString().slice(0, 10);
+        pDate.value = getLocalTodayISO();
       }
       updatePaymentImpact();
       renderRecentPaymentsList();
@@ -2704,7 +2735,7 @@
       const ref = (document.getElementById('payment-ref')?.value || '').trim();
       const vehicleNo = (document.getElementById('payment-vehicle-no')?.value || '').trim();
       const remarks = (document.getElementById('payment-remarks')?.value || '').trim();
-      const dateVal = document.getElementById('payment-date')?.value || new Date().toISOString().slice(0, 10);
+      const dateVal = document.getElementById('payment-date')?.value || getLocalTodayISO();
 
       if (!sid || amt <= 0) {
         alert('Please select a supplier and specify a valid payment amount.');
@@ -2712,7 +2743,7 @@
       }
 
       const entryTime = new Date().toTimeString().slice(0, 8);
-      const entryTimestamp = `${dateVal}T${entryTime}.000Z`;
+      const entryTimestamp = `${dateVal}T${entryTime}`;
 
       state.transactions.push({
         id: Date.now(),
@@ -2750,7 +2781,7 @@
       }
       container.innerHTML = recent.map(t => {
         const supp = state.suppliers.find(s => s.id === t.supplier_id) || { name: 'Supplier' };
-        const dateFormatted = t.date ? new Date(t.date).toLocaleDateString() : '';
+        const dateFormatted = t.date ? formatDisplayDate(t.date) : '';
         const isGiven = t.type === 'PAYMENT_GIVEN';
         const typeLabel = isGiven ? 'Payment Given' : 'Payment Received';
         const color = isGiven ? 'var(--advance-given)' : 'var(--purchase)';
@@ -3254,7 +3285,7 @@
             <div style="flex: 1; min-width: 0;">
               <div class="ledger-desc">${formatPaymentDetailHTML(item)}</div>
               <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 5px; gap: 8px;">
-                <div class="ledger-date">${new Date(item.rawDate).toLocaleDateString()}</div>
+                <div class="ledger-date">${formatDisplayDate(item.rawDate)}</div>
                 <div class="txn-actions-bar">
                   <button type="button" class="txn-act-btn edit" onclick="openEditTransactionModal(${item.id})" title="Edit Transaction">
                     <ion-icon name="create-outline"></ion-icon> Edit
@@ -3322,7 +3353,7 @@
       // Date input (YYYY-MM-DD)
       const dateInput = document.getElementById('edit-txn-date');
       if (dateInput) {
-        dateInput.value = txn.date ? txn.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+        dateInput.value = txn.date ? txn.date.slice(0, 10) : getLocalTodayISO();
       }
 
       document.getElementById('edit-txn-slip').value = txn.slip_no || txn.reference_no || '';
@@ -3379,7 +3410,7 @@
       const remarks = (document.getElementById('edit-txn-remarks')?.value || '').trim();
 
       txn.supplier_id = sid;
-      const oldTime = (txn.date && txn.date.includes('T')) ? txn.date.split('T')[1] : '12:00:00.000Z';
+      const oldTime = (txn.date && txn.date.includes('T')) ? txn.date.split('T')[1].replace('Z', '') : '12:00:00';
       txn.date = `${dateVal}T${oldTime}`;
       txn.slip_no = slip;
       txn.reference_no = slip;
@@ -3430,7 +3461,7 @@
         ? `Waste: ${txn.weight_kg} KG @ Rs. ${txn.rate_per_kg} = Rs. ${Number(txn.amount).toLocaleString()}`
         : `Payment (${txn.type === 'PAYMENT_GIVEN' ? 'Given' : 'Received'}): Rs. ${Number(txn.amount).toLocaleString()} (${txn.payment_method || 'Cash'})`;
 
-      if (!confirm(`Are you sure you want to delete this record?\n\nSupplier: ${suppName}\n${detail}\nDate: ${new Date(txn.date).toLocaleDateString()}\n\nBalances and ledger will be updated immediately.`)) {
+      if (!confirm(`Are you sure you want to delete this record?\n\nSupplier: ${suppName}\n${detail}\nDate: ${formatDisplayDate(txn.date)}\n\nBalances and ledger will be updated immediately.`)) {
         return;
       }
 
@@ -3532,13 +3563,23 @@
 
     function formatDateCSV(isoStr) {
       if (!isoStr) return '';
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr;
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const day = d.getDate();
-      const mon = months[d.getMonth()];
-      const yr = String(d.getFullYear()).slice(-2);
-      return `${String(day).padStart(2,'0')}-${mon}-${yr}`;
+      const clean = String(isoStr).replace('Z', '');
+      const datePart = clean.split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dt = new Date(y, m, d);
+        if (!isNaN(dt.getTime())) {
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const day = dt.getDate();
+          const mon = months[dt.getMonth()];
+          const yr = String(dt.getFullYear()).slice(-2);
+          return `${String(day).padStart(2,'0')}-${mon}-${yr}`;
+        }
+      }
+      return datePart || isoStr;
     }
 
     function onReportPeriodChange() {
@@ -3740,27 +3781,22 @@
         ? `From ${formatDateCSV(dateFrom)} to ${formatDateCSV(dateTo)}`
         : (dateFrom ? `From ${formatDateCSV(dateFrom)} onward` : (dateTo ? `Up to ${formatDateCSV(dateTo)}` : 'All Historical Transactions'));
       
-      const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const todayStr = getSystemFormattedDateTime();
 
       if (onlyWaste) {
         const wasteItems = reportData.items.filter(item => item.type === 'WASTE_PURCHASE');
         let totKg = 0;
-        let totAmt = 0;
         wasteItems.forEach(item => {
           totKg += Number(item.weight || 0);
-          totAmt += Number(item.amount || 0);
         });
-        const avgRate = totKg > 0 ? (totAmt / totKg).toFixed(2) : '0';
 
         const rowsHTML = wasteItems.map((item, idx) => {
           const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
           return `
             <tr style="background: ${bg};">
-              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; font-weight: 700; vertical-align: top; width: 100px;">${item.dateStr}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; font-weight: 700; vertical-align: top; width: 130px;">${item.dateStr}</td>
               <td style="padding: 10px 12px; border: 1px solid #CBD5E1; vertical-align: top;">${formatPaymentDetailHTML(item)}</td>
-              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; font-weight: 800; color: #0F172A; vertical-align: top; width: 130px; font-size: 13px;">${item.weightStr}</td>
-              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; vertical-align: top; width: 100px;">${item.rateStr}</td>
-              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; color: #2563EB; font-weight: 800; vertical-align: top; width: 140px; font-size: 13px;">${item.amountStr}</td>
+              <td style="padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; font-weight: 800; color: #065F46; vertical-align: top; width: 160px; font-size: 14px;">${item.weightStr}</td>
             </tr>
           `;
         }).join('');
@@ -3779,7 +3815,7 @@
                 </div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Generated Date</div>
+                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Generated Date & Time</div>
                 <div style="font-size: 13px; font-weight: 700; color: #0F172A; margin-top: 2px;">${todayStr}</div>
               </div>
             </div>
@@ -3801,46 +3837,34 @@
               </div>
             </div>
 
-            <!-- KPI Metric Boxes (No Payment / No Balance) -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;">
-              <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 12px; text-align: center;">
-                <div style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Total Weight</div>
-                <div style="font-size: 18px; font-weight: 900; color: #15803D; margin-top: 4px;">${totKg.toLocaleString()} KG</div>
+            <!-- KPI Metric Boxes (Only Weight and Trips - No Rate/Amount) -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px;">
+              <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 14px; text-align: center;">
+                <div style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Total Verified Weight</div>
+                <div style="font-size: 24px; font-weight: 900; color: #15803D; margin-top: 4px;">${totKg.toLocaleString()} KG</div>
               </div>
-              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; text-align: center;">
-                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Slips / Trips</div>
-                <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">${wasteItems.length}</div>
-              </div>
-              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; text-align: center;">
-                <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">Avg Rate / KG</div>
-                <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Rs. ${avgRate}</div>
-              </div>
-              <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 12px; text-align: center;">
-                <div style="font-size: 10px; font-weight: 700; color: #1D4ED8; text-transform: uppercase;">Total Purchase Value</div>
-                <div style="font-size: 18px; font-weight: 900; color: #1D4ED8; margin-top: 4px;">Rs. ${totAmt.toLocaleString()}</div>
+              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 14px; text-align: center;">
+                <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Slips / Trips</div>
+                <div style="font-size: 24px; font-weight: 800; color: #0F172A; margin-top: 4px;">${wasteItems.length}</div>
               </div>
             </div>
 
-            <!-- Chronological Statement Table (Waste Only) -->
+            <!-- Chronological Statement Table (Waste Only - Date, Details, Weight KG) -->
             <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
               <thead>
                 <tr style="background: #065F46; color: #FFFFFF;">
-                  <th style="padding: 10px 12px; text-align: left; border: 1px solid #065F46; font-weight: 700;">Date</th>
+                  <th style="padding: 10px 12px; text-align: left; border: 1px solid #065F46; font-weight: 700; width: 130px;">Date</th>
                   <th style="padding: 10px 12px; text-align: left; border: 1px solid #065F46; font-weight: 700;">Slip # / Category / Vehicle Details</th>
-                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Weight (KG)</th>
-                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Rate (Rs.)</th>
-                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700;">Total Amount (Rs.)</th>
+                  <th style="padding: 10px 12px; text-align: right; border: 1px solid #065F46; font-weight: 700; width: 160px;">Weight (KG)</th>
                 </tr>
               </thead>
               <tbody>
-                ${rowsHTML || `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #64748B;">No waste purchase entries in this period.</td></tr>`}
+                ${rowsHTML || `<tr><td colspan="3" style="padding: 24px; text-align: center; color: #64748B;">No waste purchase entries in this period.</td></tr>`}
               </tbody>
               <tfoot>
                 <tr style="background: #0F172A; color: #FFFFFF; font-weight: 800; font-size: 13px;">
-                  <td colspan="2" style="padding: 12px; border: 1px solid #0F172A;">NET PURCHASE TOTALS</td>
-                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A; color: #86EFAC;">${totKg.toLocaleString()} KG</td>
-                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A;">-</td>
-                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A; color: #93C5FD;">Rs. ${totAmt.toLocaleString()}</td>
+                  <td colspan="2" style="padding: 12px; border: 1px solid #0F172A;">NET TOTAL WEIGHT</td>
+                  <td style="padding: 12px; text-align: right; border: 1px solid #0F172A; color: #86EFAC; font-size: 15px;">${totKg.toLocaleString()} KG</td>
                 </tr>
               </tfoot>
             </table>
@@ -4104,16 +4128,14 @@
         if (onlyWaste) {
           const wasteItems = repData.items.filter(item => item.type === 'WASTE_PURCHASE');
           let totKg = 0;
-          let totAmt = 0;
           wasteItems.forEach(i => {
             totKg += Number(i.weight || 0);
-            totAmt += Number(i.amount || 0);
           });
-          messageText = `⚖️ *MATERIAL PURCHASE & WEIGHT REPORT (KG ONLY)*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${new Date().toLocaleDateString('en-GB')}\n📦 *Total Weight: ${totKg.toLocaleString()} KG*\n💰 *Total Purchase Value: Rs. ${totAmt.toLocaleString()}*\n📝 Trips / Slips: ${wasteItems.length}\n\n(Full report screenshot attached)`;
+          messageText = `⚖️ *MATERIAL PURCHASE & WEIGHT REPORT (KG ONLY)*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${getSystemFormattedDateTime()}\n📦 *Total Weight: ${totKg.toLocaleString()} KG*\n📝 Trips / Slips: ${wasteItems.length}\n\n(Full report screenshot attached)`;
         } else {
           const balNum = repData.closingBal;
           const balText = balNum > 0 ? `Advance Given Rs. ${balNum.toLocaleString()}` : balNum < 0 ? `We Owe Rs. ${Math.abs(balNum).toLocaleString()}` : `Fully Settled (Rs. 0)`;
-          messageText = `📜 *KHATA STATEMENT*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${new Date().toLocaleDateString('en-GB')}\n💰 *Closing Balance: ${balText}*\n\n(Full statement screenshot attached)`;
+          messageText = `📜 *KHATA STATEMENT*\n🏢 *${supp.name}*\n📞 ${supp.phone || 'N/A'}\n📅 Date: ${getSystemFormattedDateTime()}\n💰 *Closing Balance: ${balText}*\n\n(Full statement screenshot attached)`;
         }
 
         // Try Web Share API (native mobile WhatsApp share on iOS / Android)
