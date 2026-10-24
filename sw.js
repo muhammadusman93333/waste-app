@@ -1,20 +1,21 @@
 const CACHE_NAME = 'waste-app-cache-v18';
+// Dynamically resolve base scope path (e.g. '/waste/' or '/waste-app/')
+const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/?$/, '/');
+
 const CORE_ASSETS = [
-  '/waste/',
-  '/waste/index.html',
-  '/waste/?installed=1',
-  '/waste/manifest.json',
-  '/waste/js/html2canvas.min.js',
-  '/waste/icons/icon-192.png',
-  '/waste/icons/icon-512.png'
+  SCOPE_PATH,
+  SCOPE_PATH + 'index.html',
+  SCOPE_PATH + '?installed=1',
+  SCOPE_PATH + 'manifest.json',
+  SCOPE_PATH + 'js/html2canvas.min.js',
+  SCOPE_PATH + 'icons/icon-192.png',
+  SCOPE_PATH + 'icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
-  // Activate new SW immediately without waiting
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Cache assets individually with Promise.allSettled so one missing item does not break offline storage
       return Promise.allSettled(
         CORE_ASSETS.map((url) =>
           cache.add(url).catch((err) => {
@@ -42,18 +43,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
   const isNavigation = event.request.mode === 'navigate' ||
-                       url.pathname === '/waste/' ||
-                       url.pathname === '/waste' ||
+                       url.pathname === SCOPE_PATH ||
+                       url.pathname === SCOPE_PATH.slice(0, -1) ||
                        url.pathname.endsWith('/index.html');
 
-  // NETWORK-FIRST for HTML / App shell navigation with bulletproof offline fallback:
-  // If user is online, ALWAYS fetch the fresh HTML and update the cache so updates show immediately.
-  // If offline, seamlessly fall back to cached HTML ignoring query parameters (?installed=1).
   if (isNavigation) {
     event.respondWith(
       fetch(event.request)
@@ -61,25 +58,22 @@ self.addEventListener('fetch', (event) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              // Cache across all common navigation entry points
               cache.put(event.request, responseClone);
-              cache.put('/waste/', responseClone.clone());
-              cache.put('/waste/index.html', responseClone.clone());
-              cache.put('/waste/?installed=1', responseClone.clone());
+              cache.put(SCOPE_PATH, responseClone.clone());
+              cache.put(SCOPE_PATH + 'index.html', responseClone.clone());
+              cache.put(SCOPE_PATH + '?installed=1', responseClone.clone());
             });
           }
           return networkResponse;
         })
         .catch(async () => {
-          // Offline fallback: try matching with ignoreSearch: true
           const cached = await caches.match(event.request, { ignoreSearch: true }) ||
-                         await caches.match('/waste/index.html', { ignoreSearch: true }) ||
-                         await caches.match('/waste/', { ignoreSearch: true }) ||
-                         await caches.match('/waste/?installed=1');
+                         await caches.match(SCOPE_PATH + 'index.html', { ignoreSearch: true }) ||
+                         await caches.match(SCOPE_PATH, { ignoreSearch: true }) ||
+                         await caches.match(SCOPE_PATH + '?installed=1');
           if (cached) return cached;
 
-          // Search any cache as fallback
-          const matchAny = await caches.match('/waste/index.html');
+          const matchAny = await caches.match(SCOPE_PATH + 'index.html') || await caches.match('/waste/index.html');
           if (matchAny) return matchAny;
 
           return new Response(
@@ -91,7 +85,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // CACHE-FIRST with background revalidate for static assets (icons, scripts)
+  // CACHE-FIRST with background revalidate for static assets
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Waste Management, Supplier Ledger & Payments</title>
   <meta name="description" content="Production-ready Waste Management, Material Purchase Entry, and Supplier Ledger Khata App with WhatsApp statement sharing.">
-  <link rel="manifest" href="/waste/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#15803D">
-  <link rel="apple-touch-icon" href="/waste/icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/waste/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
   <!-- Google Identity Services for Google Drive Cloud Backup & Restore -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- html2canvas for High-Definition Full Statement Screenshot Capture -->
-  <script src="/waste/js/html2canvas.min.js"></script>
+  <script src="js/html2canvas.min.js"></script>
   <style>
     :root {
       --primary: #15803D;
@@ -4470,7 +4470,10 @@
 
       // Register Service Worker for PWA installability & offline caching
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/waste/sw.js')
+        const baseHref = window.location.pathname.endsWith('/')
+          ? window.location.pathname
+          : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        navigator.serviceWorker.register(baseHref + 'sw.js')
           .then((reg) => {
             console.log('PWA ServiceWorker registered:', reg.scope);
             // Check for update on network immediately
