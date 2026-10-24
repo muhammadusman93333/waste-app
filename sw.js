@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waste-app-cache-v17';
+const CACHE_NAME = 'waste-app-cache-v18';
 const CORE_ASSETS = [
   '/waste/',
   '/waste/index.html',

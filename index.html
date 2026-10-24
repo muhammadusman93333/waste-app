@@ -742,7 +742,8 @@
       transition: opacity 0.25s ease;
     }
 
-    .modal-overlay.open {
+    .modal-overlay.open,
+    .modal-overlay.active {
       opacity: 1;
       pointer-events: auto;
     }
@@ -761,7 +762,8 @@
       overflow: hidden;
     }
 
-    .modal-overlay.open .modal-dialog {
+    .modal-overlay.open .modal-dialog,
+    .modal-overlay.active .modal-dialog {
       transform: translateY(0);
     }
 
@@ -2313,9 +2315,9 @@
           <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
             <div>
               <div style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
-                <ion-icon name="information-circle-outline" style="color: var(--primary); font-size: 16px;"></ion-icon> App Version: v1.7
+                <ion-icon name="information-circle-outline" style="color: var(--primary); font-size: 16px;"></ion-icon> App Version: v1.8
               </div>
-              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Fast Canvas & WhatsApp Share Loader</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Share Modal & WhatsApp Direct Button</div>
             </div>
             <button type="button" onclick="forceCheckAppUpdate()" class="action-btn primary" style="padding: 7px 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
               <ion-icon name="sync-outline"></ion-icon> Update App
@@ -4179,29 +4181,7 @@
         window._pendingShareText = messageText;
         window._pendingWaUrl = waUrl;
 
-        const elapsed = performance.now() - startTime;
-
-        // If rendered ultra-fast (< 700ms) and share is supported, try immediate popup
-        if (elapsed < 700 && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-          try {
-            await navigator.share({
-              files: [imageFile],
-              title: shareTitle,
-              text: messageText
-            });
-            closeShareProgressModal();
-            showToast('Shared to WhatsApp successfully!');
-            return;
-          } catch (err) {
-            if (err.name === 'AbortError') {
-              closeShareProgressModal();
-              return;
-            }
-            // If gesture expired or not allowed, seamlessly transition to Ready Screen
-          }
-        }
-
-        // Show Ready Screen in modal with big WhatsApp button (guarantees fresh user gesture!)
+        // Show Ready Screen in modal with green WhatsApp button (guarantees fresh user gesture!)
         showShareReadyModal(fileName, blob.size);
 
       } catch (err) {
@@ -4217,43 +4197,47 @@
       const body = document.getElementById('share-modal-body');
       if (!modal || !body) return;
       body.innerHTML = `
-        <div style="padding: 16px 8px 24px 8px;">
-          <div style="font-size: 40px; display: inline-block; animation: spin-slow 2s linear infinite; margin-bottom: 12px;">⏳</div>
-          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin: 0 0 6px 0;">Generating Statement</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 16px 0;">
-            Rendering verified high-resolution screenshot (${totalItems} records)...
+        <div style="padding: 24px 16px 28px 16px; text-align: center;">
+          <div style="font-size: 42px; display: inline-block; animation: spin-slow 2s linear infinite; margin-bottom: 12px;">⏳</div>
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin: 0 0 6px 0;">Generating Statement</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 18px 0;">
+            Rendering high-resolution screenshot (${totalItems} records)...
           </p>
           <div style="height: 6px; width: 100%; background: var(--border); border-radius: 999px; overflow: hidden; position: relative;">
             <div style="height: 100%; width: 50%; background: var(--primary); border-radius: 999px; animation: pulse-bar 1.2s ease-in-out infinite;"></div>
           </div>
         </div>
       `;
+      modal.classList.add('open');
       modal.classList.add('active');
     }
 
     function showShareReadyModal(fileName, fileSize) {
+      const modal = document.getElementById('modal-share-sheet');
       const body = document.getElementById('share-modal-body');
-      if (!body) return;
+      if (!modal || !body) return;
+      modal.classList.add('open');
+      modal.classList.add('active');
       const sizeKb = Math.round(fileSize / 1024);
       body.innerHTML = `
-        <div style="padding: 6px 4px 14px 4px;">
-          <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10B981; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 10px auto;">
+        <div style="padding: 16px 12px 22px 12px; text-align: center;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10B981; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 12px auto;">
             <ion-icon name="checkmark-circle"></ion-icon>
           </div>
-          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">Screenshot Ready!</h3>
-          <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 16px 0;">
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">Screenshot Ready!</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 18px 0;">
             ${escapeHTML(fileName)} • ${sizeKb} KB
           </p>
 
-          <button type="button" onclick="triggerReadyNativeShare()" class="action-btn" style="width: 100%; background: #25D366; color: #FFFFFF; font-weight: 800; font-size: 14px; padding: 13px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);">
+          <button type="button" onclick="triggerReadyNativeShare()" class="action-btn" style="width: 100%; background: #25D366; color: #FFFFFF; font-weight: 800; font-size: 15px; padding: 14px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);">
             <ion-icon name="logo-whatsapp" style="font-size: 22px;"></ion-icon> Send to WhatsApp Now
           </button>
 
           <div style="display: flex; gap: 8px;">
-            <button type="button" onclick="triggerReadyDownload()" class="action-btn" style="flex: 1; padding: 9px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <button type="button" onclick="triggerReadyDownload()" class="action-btn" style="flex: 1; padding: 10px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px;">
               <ion-icon name="download-outline"></ion-icon> Save to Phone
             </button>
-            <button type="button" onclick="closeShareProgressModal()" class="action-btn" style="flex: 1; padding: 9px; font-size: 12px; color: var(--text-muted);">
+            <button type="button" onclick="closeShareProgressModal()" class="action-btn" style="flex: 1; padding: 10px; font-size: 12px; color: var(--text-muted);">
               Cancel
             </button>
           </div>
@@ -4299,7 +4283,10 @@
 
     function closeShareProgressModal() {
       const modal = document.getElementById('modal-share-sheet');
-      if (modal) modal.classList.remove('active');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.classList.remove('active');
+      }
     }
 
     function captureAndDownloadReportScreenshot() {
